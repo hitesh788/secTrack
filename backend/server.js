@@ -16,7 +16,10 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sectrack')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sectrack', {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000
+})
     .then(() => console.log('MongoDB connected'))
     .catch((err) => console.log('MongoDB connection error:', err));
 
