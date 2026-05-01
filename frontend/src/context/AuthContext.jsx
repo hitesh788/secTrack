@@ -16,13 +16,13 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (email, password) => {
-        const { data } = await axios.post('/api/auth/login', { email, password });
+        const { data } = await axios.post('/_/backend/api/auth/login', { email, password });
         localStorage.setItem('userInfo', JSON.stringify(data));
         setUser(data);
     };
 
     const register = async (name, email, password) => {
-        const { data } = await axios.post('/api/auth/register', { name, email, password });
+        const { data } = await axios.post('/_/backend/api/auth/register', { name, email, password });
         localStorage.setItem('userInfo', JSON.stringify(data));
         setUser(data);
     };
