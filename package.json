@@ -1,0 +1,27 @@
+{
+  "name": "sectracker",
+  "version": "1.0.0",
+  "description": "SecTrack Pro is a full-stack MERN application for Network Security Engineers to track their learning goals, plan study topics, and log daily progress with comprehensive KPI tracking and PDF reporting functionalities.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hitesh788/secTrack.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hitesh788/secTrack/issues"
+  },
+  "homepage": "https://github.com/hitesh788/secTrack#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.6.1"
+  }
+}
