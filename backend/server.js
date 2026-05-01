@@ -23,6 +23,14 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sectrack'
     .then(() => console.log('MongoDB connected'))
     .catch((err) => console.log('MongoDB connection error:', err));
 
+// Strip Vercel Monorepo proxy prefix transparently for production
+app.use((req, res, next) => {
+    if (req.url.startsWith('/_/backend')) {
+        req.url = req.url.replace('/_/backend', '');
+    }
+    next();
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/topics', topicRoutes);
