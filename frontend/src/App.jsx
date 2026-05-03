@@ -20,13 +20,49 @@ const PrivateRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
+import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, Target, BookOpen, Calendar, Database, Map, FileText, ShieldCheck } from 'lucide-react';
+
 const AppLayout = ({ children }) => {
   return (
     <div className="app-container">
+      {/* Mobile Top Bar */}
+      <header className="mobile-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white' }}>
+          <ShieldCheck size={24} color="#2563eb" />
+          <span style={{ fontWeight: 800, fontSize: '0.9rem', letterSpacing: '1px' }}>SECTRACK <span style={{ color: '#2563eb' }}>PRO</span></span>
+        </div>
+      </header>
+
       <Sidebar />
+
       <main className="main-content">
         {children}
       </main>
+
+      {/* Mobile Bottom Navbar */}
+      <nav className="mobile-nav">
+        <NavLink to="/" className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
+          <LayoutDashboard size={20} />
+          <span>Home</span>
+        </NavLink>
+        <NavLink to="/goals" className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
+          <Target size={20} />
+          <span>Goals</span>
+        </NavLink>
+        <NavLink to="/logs" className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
+          <Calendar size={20} />
+          <span>Daily</span>
+        </NavLink>
+        <NavLink to="/roadmaps" className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
+          <Map size={20} />
+          <span>Maps</span>
+        </NavLink>
+        <NavLink to="/vault" className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
+          <Database size={20} />
+          <span>Vault</span>
+        </NavLink>
+      </nav>
     </div>
   );
 };

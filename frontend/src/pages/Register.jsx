@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export default function Register() {
     const [name, setName] = useState('');
@@ -23,7 +23,12 @@ export default function Register() {
     return (
         <div className="auth-container">
             <div className="glass-panel auth-card">
-                <div className="sidebar-logo"><Shield size={32} /> SecTrack Pro</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center', marginBottom: '2.5rem' }}>
+                    <ShieldCheck size={36} color="#2563eb" />
+                    <span style={{ fontWeight: 900, fontSize: '1.5rem', letterSpacing: '1px', color: '#1e293b' }}>
+                        SECTRACK <span style={{ color: '#2563eb' }}>PRO</span>
+                    </span>
+                </div>
                 <h2 className="text-center" style={{ marginBottom: '2rem' }}>Create Account</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">

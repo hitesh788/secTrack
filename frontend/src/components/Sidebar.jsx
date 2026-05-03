@@ -1,15 +1,24 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Target, BookOpen, Calendar, FileText, LogOut, ShieldCheck, Database, Map } from 'lucide-react';
+import { LayoutDashboard, Target, BookOpen, Calendar, FileText, LogOut, ShieldCheck, Database, Map, X } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, closeSidebar }) {
     const { logout, user } = useAuth();
 
     return (
-        <div className="sidebar">
-            <div className="sidebar-logo" style={{ fontSize: '1.1rem', fontWeight: 900 }}>
-                <ShieldCheck size={28} style={{ color: 'var(--primary)' }} />
-                <span>SECTRACK <span style={{ color: 'var(--primary)' }}>PRO</span></span>
+        <div className={`sidebar ${isOpen ? 'open' : ''}`}>
+            <div className="sidebar-logo" style={{ fontSize: '1.2rem', fontWeight: 900, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '2.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <ShieldCheck size={32} color="#2563eb" />
+                    <span style={{ color: 'white' }}>SECTRACK <span style={{ color: '#2563eb' }}>PRO</span></span>
+                </div>
+                <button
+                    onClick={closeSidebar}
+                    className="menu-btn"
+                    style={{ display: window.innerWidth <= 768 ? 'block' : 'none', color: '#64748b' }}
+                >
+                    <X size={24} />
+                </button>
             </div>
 
             {user && (
@@ -24,25 +33,25 @@ export default function Sidebar() {
             )}
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <NavLink to="/" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/" onClick={closeSidebar} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <LayoutDashboard size={20} /> Dashboard
                 </NavLink>
-                <NavLink to="/goals" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/goals" onClick={closeSidebar} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Target size={20} /> Goal Creator
                 </NavLink>
-                <NavLink to="/topics" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/topics" onClick={closeSidebar} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <BookOpen size={20} /> Topics
                 </NavLink>
-                <NavLink to="/logs" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/logs" onClick={closeSidebar} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Calendar size={20} /> Daily Logs
                 </NavLink>
-                <NavLink to="/vault" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/vault" onClick={closeSidebar} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Database size={20} /> Intel Vault
                 </NavLink>
-                <NavLink to="/roadmaps" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/roadmaps" onClick={closeSidebar} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Map size={20} /> Mission Roadmaps
                 </NavLink>
-                <NavLink to="/reports" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/reports" onClick={closeSidebar} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <FileText size={20} /> Reports
                 </NavLink>
             </div>

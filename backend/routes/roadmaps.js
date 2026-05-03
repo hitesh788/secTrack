@@ -2,10 +2,73 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const { protect } = require('../middleware/authMiddleware');
 const Roadmap = require('../models/Roadmap');
 
 const router = express.Router();
+
+// Helper to add watermark to PDF
+async function addWatermarkToPDF(filePath) {
+    try {
+        const existingPdfBytes = fs.readFileSync(filePath);
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        const pages = pdfDoc.getPages();
+        for (const page of pages) {
+            const { width, height } = page.getSize();
+
+            const fontSize = 40;
+            const text1 = 'SECTRACK ';
+            const text2 = 'PRO';
+            const textWidth1 = helveticaBold.widthOfTextAtSize(text1, fontSize);
+            const textWidth2 = helveticaBold.widthOfTextAtSize(text2, fontSize);
+            const totalWidth = textWidth1 + textWidth2;
+
+            // Center position
+            const x = (width - totalWidth) / 2;
+            const y = height / 2;
+
+            // Draw SECTRACK (Dark)
+            page.drawText(text1, {
+                x,
+                y,
+                size: fontSize,
+                font: helveticaBold,
+                color: rgb(0.06, 0.09, 0.16),
+                opacity: 0.1,
+            });
+
+            // Draw PRO (Blue)
+            page.drawText(text2, {
+                x: x + textWidth1,
+                y,
+                size: fontSize,
+                font: helveticaBold,
+                color: rgb(0.14, 0.38, 0.92),
+                opacity: 0.1,
+            });
+
+            // Small footer stamp
+            page.drawText('OFFICIAL MISSION BLUEPRINT | SECURED BY SECTRACK PRO', {
+                x: 10,
+                y: 10,
+                size: 7,
+                font: helveticaBold,
+                color: rgb(0.5, 0.5, 0.5),
+                opacity: 0.2
+            });
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        fs.writeFileSync(filePath, pdfBytes);
+        return true;
+    } catch (err) {
+        console.error('Watermark Error:', err);
+        return false;
+    }
+}
 
 // Configure storage
 const storage = multer.diskStorage({
@@ -23,7 +86,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+    limits: { fileSize: 50 * 1024 * 1024 }
 });
 
 router.route('/')
@@ -39,6 +102,13 @@ router.route('/')
         try {
             if (!req.file) {
                 return res.status(400).json({ message: 'Please upload a file' });
+            }
+
+            const filePath = path.join('uploads', req.file.filename);
+
+            // Add watermark if it is a PDF
+            if (req.file.mimetype === 'application/pdf') {
+                await addWatermarkToPDF(filePath);
             }
 
             const roadmapData = {
@@ -64,7 +134,6 @@ router.route('/:id')
             const roadmap = await Roadmap.findOne({ _id: req.params.id, user: req.user._id });
             if (!roadmap) return res.status(404).json({ message: 'Roadmap not found' });
 
-            // Delete physical file
             const filePath = path.join(__dirname, '..', roadmap.fileUrl);
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
