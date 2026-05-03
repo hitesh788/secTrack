@@ -364,15 +364,21 @@ textarea {
   padding-bottom: 0.5rem;
 }
 
+.dashboard-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .grid-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 1.5rem;
 }
 
 .grid-3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
 }
 
@@ -700,9 +706,7 @@ textarea {
   .grid-2 {
     grid-template-columns: 1fr !important;
   }
-}
 
-@media (max-width: 768px) {
   .sidebar {
     display: none !important;
     visibility: hidden !important;
@@ -712,8 +716,24 @@ textarea {
 
   .main-content {
     margin-left: 0 !important;
-    padding: 1rem !important;
+    padding: 1.5rem !important;
     width: 100% !important;
+  }
+
+  .mobile-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .mobile-nav {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem !important;
     padding-bottom: 5rem !important;
   }
 
@@ -727,15 +747,8 @@ textarea {
 
   .app-container {
     display: block !important;
-    overflow-x: hidden;
-  }
-
-  .mobile-header {
-    display: flex !important;
-  }
-
-  .mobile-nav {
-    display: flex !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
   }
 }
 
@@ -795,8 +808,11 @@ textarea {
   height: 20px;
 }
 
+html,
 body {
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  width: 100% !important;
+  position: relative;
 }
 
 @media (max-width: 768px) {

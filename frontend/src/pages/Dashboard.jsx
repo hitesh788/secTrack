@@ -68,7 +68,7 @@ export default function Dashboard() {
     };
 
     return (
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div className="dashboard-container">
             <h1 className="page-title">Mission Command Center</h1>
 
             <div className="grid-3" style={{ marginBottom: '2rem' }}>
