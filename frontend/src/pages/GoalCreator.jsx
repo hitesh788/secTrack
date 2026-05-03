@@ -36,17 +36,6 @@ export default function GoalCreator() {
         setLoading(false);
     };
 
-    const handleAnalyze = async (goalId) => {
-        setLoading(true);
-        try {
-            await api.post(`/goals/${goalId}/analyze`);
-            alert('Goal analyzed successfully! Check Topics page.');
-        } catch (err) {
-            alert('Analysis failed');
-        }
-        setLoading(false);
-    };
-
     const handleDelete = async (goalId) => {
         if (!window.confirm('Are you sure you want to delete this goal and all related topics/logs?')) return;
         setLoading(true);
@@ -93,9 +82,6 @@ export default function GoalCreator() {
                                 <h4 className="text-gradient">{g.title}</h4>
                                 <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{g.description}</p>
                                 <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                                    <button className="btn btn-accent" onClick={() => handleAnalyze(g._id)} disabled={loading}>
-                                        Analyze with AI
-                                    </button>
                                     <button className="btn btn-outline" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => handleDelete(g._id)} disabled={loading}>
                                         Delete
                                     </button>
