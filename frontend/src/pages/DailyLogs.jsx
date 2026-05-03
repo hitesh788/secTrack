@@ -3,14 +3,13 @@ import api from '../services/api';
 
 export default function DailyLogs() {
     const [logs, setLogs] = useState([]);
-    const [topics, setTopics] = useState([]);
-    const [formData, setFormData] = useState({
-        topicId: '', date: new Date().toISOString().split('T')[0], completedTasks: '', hoursSpent: '', notes: '', statusUpdate: '', isMissedDay: false, reasonMissed: ''
-    });
+    const [showLeaveForm, setShowLeaveForm] = useState(false);
+    const [leaveDate, setLeaveDate] = useState(new Date().toISOString().split('T')[0]);
+    const [leaveReason, setLeaveReason] = useState('');
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchLogs();
-        fetchTopics();
     }, []);
 
     const fetchLogs = async () => {
@@ -22,84 +21,55 @@ export default function DailyLogs() {
         }
     };
 
-    const fetchTopics = async () => {
+    const handleSaveLeave = async (e) => {
+        e.preventDefault();
+        setLoading(true);
         try {
-            const res = await api.get('/topics');
-            setTopics(res.data);
+            const res = await api.post('/logs', {
+                date: leaveDate,
+                isMissedDay: true,
+                reasonMissed: leaveReason,
+                completedTasks: 'Leave / Did not study'
+            });
+            setLogs([res.data, ...logs]);
+            setLeaveReason('');
+            setShowLeaveForm(false);
         } catch (err) {
             console.error(err);
+            alert('Failed to log leave status');
         }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await api.post('/logs', formData);
-            setLogs([res.data, ...logs]); // add new log at top
-            setFormData({ topicId: '', date: new Date().toISOString().split('T')[0], completedTasks: '', hoursSpent: '', notes: '', statusUpdate: '', isMissedDay: false, reasonMissed: '' });
-        } catch (err) {
-            alert('Failed to save log');
-        }
+        setLoading(false);
     };
 
     return (
         <div>
-            <h1 className="page-title">Daily Progress Logs</h1>
-            <div className="grid-2">
-                <div className="glass-panel">
-                    <h3>Log Activity</h3>
-                    <form onSubmit={handleSubmit} style={{ marginTop: '1rem' }}>
-                        <div className="form-group">
-                            <label>Date</label>
-                            <input type="date" className="form-control" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} required />
-                        </div>
-                        <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input type="checkbox" id="missedDay" checked={formData.isMissedDay} onChange={e => setFormData({ ...formData, isMissedDay: e.target.checked })} style={{ width: 'auto' }} />
-                            <label htmlFor="missedDay" style={{ margin: 0 }}>I did not study on this day</label>
-                        </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h1 className="page-title" style={{ margin: 0 }}>Daily Progress Logs</h1>
+                <button className="btn btn-outline" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => setShowLeaveForm(!showLeaveForm)}>
+                    {showLeaveForm ? 'Cancel' : 'Add Leave Status'}
+                </button>
+            </div>
 
-                        {!formData.isMissedDay ? (
-                            <>
-                                <div className="form-group">
-                                    <label>Related Topic (Optional)</label>
-                                    <select className="form-control" value={formData.topicId} onChange={e => setFormData({ ...formData, topicId: e.target.value })}>
-                                        <option value="">General Log (No Topic)</option>
-                                        {topics.map(t => <option key={t._id} value={t._id}>{t.title}</option>)}
-                                    </select>
-                                </div>
-                                {formData.topicId && (
-                                    <div className="form-group">
-                                        <label>Update Topic Status?</label>
-                                        <select className="form-control" value={formData.statusUpdate} onChange={e => setFormData({ ...formData, statusUpdate: e.target.value })}>
-                                            <option value="">Keep current status</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Completed">Completed</option>
-                                        </select>
-                                    </div>
-                                )}
-                                <div className="form-group">
-                                    <label>Completed Tasks</label>
-                                    <input type="text" className="form-control" value={formData.completedTasks} onChange={e => setFormData({ ...formData, completedTasks: e.target.value })} placeholder="e.g. Practiced Nmap scanning" required />
-                                </div>
-                                <div className="form-group">
-                                    <label>Hours Spent</label>
-                                    <input type="number" step="0.1" className="form-control" value={formData.hoursSpent} onChange={e => setFormData({ ...formData, hoursSpent: e.target.value })} required />
-                                </div>
-                                <div className="form-group">
-                                    <label>Notes</label>
-                                    <textarea className="form-control" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} rows="3"></textarea>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="form-group">
-                                <label>Reason for not studying</label>
-                                <textarea className="form-control" value={formData.reasonMissed} onChange={e => setFormData({ ...formData, reasonMissed: e.target.value })} placeholder="e.g. Was feeling sick, Had to work overtime..." required rows="3"></textarea>
-                            </div>
-                        )}
-                        <button type="submit" className="btn btn-primary">Save Log</button>
+            {showLeaveForm && (
+                <div className="glass-panel" style={{ marginBottom: '2rem' }}>
+                    <h3 style={{ color: 'var(--danger)' }}>Log a Leave Day</h3>
+                    <form onSubmit={handleSaveLeave} style={{ marginTop: '1rem' }}>
+                        <div className="form-group">
+                            <label>Date of Leave</label>
+                            <input type="date" className="form-control" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} required />
+                        </div>
+                        <div className="form-group">
+                            <label>Reason</label>
+                            <textarea className="form-control" value={leaveReason} onChange={e => setLeaveReason(e.target.value)} rows="2" required placeholder="e.g. Sick leave, travelling, needing a break..."></textarea>
+                        </div>
+                        <button type="submit" className="btn btn-primary" style={{ background: 'var(--danger)' }} disabled={loading}>
+                            {loading ? 'Saving...' : 'Save Leave Log'}
+                        </button>
                     </form>
                 </div>
+            )}
 
+            <div>
                 <div>
                     <h3>Recent Logs</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
@@ -107,7 +77,7 @@ export default function DailyLogs() {
                             <div key={log._id} className="glass-panel">
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <strong className="text-gradient">{new Date(log.date).toLocaleDateString()}</strong>
-                                    <span>{log.isMissedDay ? <span className="badge badge-NotStarted" style={{ color: 'var(--danger)', background: 'rgba(220,38,38,0.1)', borderColor: 'rgba(220,38,38,0.2)' }}>Missed</span> : `${log.hoursSpent} hrs`}</span>
+                                    <span>{log.isMissedDay ? <span className="badge badge-NotStarted" style={{ color: 'var(--danger)', background: 'rgba(220,38,38,0.1)', borderColor: 'rgba(220,38,38,0.2)' }}>Missed</span> : <span className="badge badge-Completed">Completed</span>}</span>
                                 </div>
                                 {log.isMissedDay ? (
                                     <>
