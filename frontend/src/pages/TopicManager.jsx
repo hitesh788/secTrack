@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { Calendar, CheckCircle, Clock, ArrowRight, CornerDownRight, Database } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 export default function TopicManager() {
     const [topics, setTopics] = useState([]);
-    const [filter, setFilter] = useState('All');
-    const [newTitle, setNewTitle] = useState('');
-    const [newDescription, setNewDescription] = useState('');
-    const [loadingLog, setLoadingLog] = useState(false);
+
+    // For Today form
+    const [todayTitle, setTodayTitle] = useState('');
+    const [todayDesc, setTodayDesc] = useState('');
+    const [todayResources, setTodayResources] = useState('');
+
+    // For Tomorrow form
+    const [tomorrowTitle, setTomorrowTitle] = useState('');
+    const [tomorrowDesc, setTomorrowDesc] = useState('');
+    const [tomorrowResources, setTomorrowResources] = useState('');
+
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchTopics();
@@ -21,101 +31,218 @@ export default function TopicManager() {
         }
     };
 
-    const updateStatus = async (id, status) => {
+    const handleAddTopic = async (e, plannedFor) => {
+        e.preventDefault();
+        const title = plannedFor === 'Today' ? todayTitle : tomorrowTitle;
+        const description = plannedFor === 'Today' ? todayDesc : tomorrowDesc;
+        const resources = plannedFor === 'Today' ? todayResources : tomorrowResources;
+
+        if (!title) return;
+        setLoading(true);
         try {
-            const res = await api.put(`/topics/${id}`, { status });
-            setTopics(topics.map(t => t._id === id ? res.data : t));
+            const res = await api.post('/topics', {
+                title,
+                description,
+                resources,
+                targetDate: plannedFor,
+                status: plannedFor === 'Today' ? 'In Progress' : 'Not Started'
+            });
+            setTopics([res.data, ...topics]);
+
+            if (plannedFor === 'Today') {
+                setTodayTitle('');
+                setTodayDesc('');
+                setTodayResources('');
+            } else {
+                setTomorrowTitle('');
+                setTomorrowDesc('');
+                setTomorrowResources('');
+            }
+            toast.success(`Operational topic scheduled for ${plannedFor}.`);
         } catch (err) {
             console.error(err);
+            toast.error('Failed to schedule topic.');
         }
+        setLoading(false);
     };
 
-    const handleAddTopicAndLog = async (e) => {
-        e.preventDefault();
-        if (!newTitle || !newDescription) return;
-        setLoadingLog(true);
+    const completeAndLog = async (topic) => {
+        if (!topic.title) return;
         try {
-            const topicRes = await api.post('/topics', {
-                title: newTitle,
-                description: newDescription,
-                status: 'Completed'
-            });
-            const newTopic = topicRes.data;
-            setTopics([newTopic, ...topics]);
-
+            await api.put(`/topics/${topic._id}`, { status: 'Completed' });
             await api.post('/logs', {
-                topicId: newTopic._id,
+                topicId: topic._id,
                 date: new Date().toISOString(),
-                completedTasks: newTitle,
-                notes: newDescription,
+                completedTasks: topic.title,
+                notes: topic.description,
                 statusUpdate: 'Completed'
             });
-
-            setNewTitle('');
-            setNewDescription('');
-            alert('Topic created and log saved!');
+            setTopics(topics.map(t => t._id === topic._id ? { ...t, status: 'Completed' } : t));
+            toast.success('Topic completed and intelligence logged.');
         } catch (err) {
             console.error(err);
-            alert('Failed to save Topic and Log');
+            toast.error('Failed to log topic completion.');
         }
-        setLoadingLog(false);
     };
 
-    const filteredTopics = topics.filter(t => filter === 'All' || t.status === filter);
+    const moveTopic = async (topicId, newPlan) => {
+        try {
+            const status = newPlan === 'Today' ? 'In Progress' : 'Not Started';
+            const res = await api.put(`/topics/${topicId}`, { targetDate: newPlan, status });
+            setTopics(topics.map(t => t._id === topicId ? res.data : t));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const todayTopics = topics.filter(t => (t.targetDate === 'Today' || (!t.targetDate && t.status === 'In Progress')) && t.status !== 'Completed');
+    const tomorrowTopics = topics.filter(t => (t.targetDate === 'Tomorrow' || (!t.targetDate && t.status === 'Not Started')) && t.status !== 'Completed');
+    const completedTopics = topics.filter(t => t.status === 'Completed');
+
+    const renderTopicCard = (t, currentPlan) => (
+        <div key={t._id} className={`planner-card ${currentPlan === 'Today' ? 'planner-card-today' : 'planner-card-tomorrow'}`}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{t.title}</h4>
+                <span className={`badge badge-${t.status.replace(' ', '')}`}>{t.status}</span>
+            </div>
+
+            {t.description && <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.75rem', lineHeight: '1.4' }}>{t.description}</p>}
+
+            {t.resources && (
+                <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: 'rgba(37, 99, 235, 0.05)', borderRadius: '6px', border: '1px solid rgba(37, 99, 235, 0.1)' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                        <Database size={12} /> INTEL VAULT
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', margin: 0 }}>{t.resources}</p>
+                </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                {currentPlan === 'Today' && (
+                    <button className="btn btn-primary" style={{ flex: 2 }} onClick={() => completeAndLog(t)}>
+                        <CheckCircle size={16} /> Complete & Log
+                    </button>
+                )}
+                {currentPlan === 'Tomorrow' && (
+                    <button className="btn btn-primary" style={{ flex: 1, backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => moveTopic(t._id, 'Today')}>
+                        <ArrowRight size={16} /> Start Today
+                    </button>
+                )}
+                {currentPlan === 'Today' && (
+                    <button className="btn btn-outline" title="Push to Tomorrow" onClick={() => moveTopic(t._id, 'Tomorrow')}>
+                        <Clock size={16} /> Later
+                    </button>
+                )}
+            </div>
+        </div>
+    );
 
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1 className="page-title">Topic Manager</h1>
-                <select className="form-control" style={{ width: '200px' }} value={filter} onChange={e => setFilter(e.target.value)}>
-                    <option value="All">All Topics</option>
-                    <option value="Not Started">Not Started</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                </select>
-            </div>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <h1 className="page-title">Topic Planner</h1>
 
-            <div className="glass-panel" style={{ marginBottom: '2rem' }}>
-                <h3>Add Today's Completed Topic</h3>
-                <form onSubmit={handleAddTopicAndLog} style={{ marginTop: '1rem' }}>
-                    <div className="form-group">
-                        <label>Title of Topic</label>
-                        <input className="form-control" value={newTitle} onChange={e => setNewTitle(e.target.value)} required placeholder="e.g. Mastered React Hooks" />
-                    </div>
-                    <div className="form-group">
-                        <label>What we learned today (Description)</label>
-                        <textarea className="form-control" value={newDescription} onChange={e => setNewDescription(e.target.value)} rows="3" required placeholder="Detailed notes about what was learned..."></textarea>
-                    </div>
-                    <button type="submit" className="btn btn-primary" disabled={loadingLog}>
-                        {loadingLog ? 'Saving...' : 'Save Log with Timestamp'}
-                    </button>
-                </form>
-            </div>
+            <div className="grid-2">
+                {/* TODAY SECTION */}
+                <div className="planner-section">
+                    <h2 className="planner-title" style={{ color: 'var(--primary)' }}>
+                        <Calendar size={24} /> Plan for Today
+                    </h2>
+                    <p className="planner-subtitle">What will you complete today?</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {filteredTopics.map(t => (
-                    <div key={t._id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                {t.title}
-                                <span className={`badge badge-${t.status.replace(' ', '')}`}>{t.status}</span>
-                                <span className="badge" style={{ background: 'rgba(255,255,255,0.1)' }}>{t.priority}</span>
-                            </h4>
-                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{t.description}</p>
-                            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                                {t.tags && t.tags.map(tag => <span key={tag} style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>#{tag}</span>)}
+                    <div className="planner-form-container">
+                        <form onSubmit={(e) => handleAddTopic(e, 'Today')}>
+                            <div className="form-group">
+                                <input className="form-control" value={todayTitle} onChange={e => setTodayTitle(e.target.value)} placeholder="Topic Title..." required />
                             </div>
-                        </div>
-                        <div>
-                            <select className="form-control" value={t.status} onChange={(e) => updateStatus(t._id, e.target.value)}>
-                                <option value="Not Started">Not Started</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Completed">Completed</option>
-                            </select>
-                        </div>
+                            <div className="form-group">
+                                <textarea className="form-control" value={todayDesc} onChange={e => setTodayDesc(e.target.value)} rows="2" placeholder="What are you covering today?"></textarea>
+                            </div>
+                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                <input className="form-control" value={todayResources} onChange={e => setTodayResources(e.target.value)} placeholder="Intel Vault (Links, Resources, Keys...)" />
+                            </div>
+                            <button className="btn btn-primary" style={{ width: '100%', padding: '0.75rem' }} disabled={loading}>
+                                Add to Today's Plan
+                            </button>
+                        </form>
                     </div>
-                ))}
-                {topics.length === 0 && <p className="text-muted">No topics found. Add a completed topic above to get started!</p>}
+
+                    <div style={{ marginTop: '0.5rem' }}>
+                        {todayTopics.length === 0 ? (
+                            <div className="planner-empty-state">
+                                <Clock className="text-muted" style={{ marginBottom: '0.5rem' }} />
+                                <p className="text-muted">No pending topics for today.</p>
+                            </div>
+                        ) : (
+                            todayTopics.map(t => renderTopicCard(t, 'Today'))
+                        )}
+                    </div>
+                </div>
+
+                {/* TOMORROW SECTION */}
+                <div className="planner-section">
+                    <h2 className="planner-title" style={{ color: 'var(--accent)' }}>
+                        <Clock size={24} /> Plan for Tomorrow
+                    </h2>
+                    <p className="planner-subtitle">What will you study next?</p>
+
+                    <div className="planner-form-container">
+                        <form onSubmit={(e) => handleAddTopic(e, 'Tomorrow')}>
+                            <div className="form-group">
+                                <input className="form-control" value={tomorrowTitle} onChange={e => setTomorrowTitle(e.target.value)} placeholder="Topic Title..." required />
+                            </div>
+                            <div className="form-group">
+                                <textarea className="form-control" value={tomorrowDesc} onChange={e => setTomorrowDesc(e.target.value)} rows="2" placeholder="Brief roadmap notes..."></textarea>
+                            </div>
+                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                <input className="form-control" value={tomorrowResources} onChange={e => setTomorrowResources(e.target.value)} placeholder="Intel Vault (Links, Resources, Keys...)" />
+                            </div>
+                            <button className="btn btn-accent" style={{ width: '100%', padding: '0.75rem' }} disabled={loading}>
+                                Schedule for Tomorrow
+                            </button>
+                        </form>
+                    </div>
+
+                    <div style={{ marginTop: '0.5rem' }}>
+                        {tomorrowTopics.length === 0 ? (
+                            <div className="planner-empty-state">
+                                <ArrowRight className="text-muted" style={{ marginBottom: '0.5rem' }} />
+                                <p className="text-muted">No topics planned for tomorrow.</p>
+                            </div>
+                        ) : (
+                            tomorrowTopics.map(t => renderTopicCard(t, 'Tomorrow'))
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* RECENTLY COMPLETED SECTION */}
+            <div style={{ marginTop: '4rem', paddingBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <CheckCircle size={28} className="text-gradient" />
+                    <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Recently Completed</h2>
+                </div>
+
+                <div className="completed-grid">
+                    {completedTopics.slice(0, 6).map(t => (
+                        <div key={t._id} className="glass-panel completed-card" style={{ padding: '1.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                <h4 style={{ fontWeight: 700, color: 'var(--text-main)' }}>{t.title}</h4>
+                                <span className="badge badge-Completed">Done</span>
+                            </div>
+                            {t.description && (
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                                    <CornerDownRight size={14} style={{ marginTop: '3px', color: 'var(--success)' }} />
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>{t.description}</p>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    {completedTopics.length === 0 && (
+                        <div className="glass-panel" style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '3rem' }}>
+                            <p className="text-muted">Items you complete will appear here as a trophy shelf.</p>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

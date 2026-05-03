@@ -3,17 +3,23 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const goalRoutes = require('./routes/goals');
 const topicRoutes = require('./routes/topics');
 const logRoutes = require('./routes/logs');
+const resourceRoutes = require('./routes/resources');
+const roadmapRoutes = require('./routes/roadmaps');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Static uploads folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sectrack', {
@@ -35,6 +41,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/topics', topicRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/resources', resourceRoutes);
+app.use('/api/roadmaps', roadmapRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');

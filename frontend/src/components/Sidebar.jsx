@@ -1,16 +1,27 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Target, BookOpen, Calendar, FileText, LogOut, Shield } from 'lucide-react';
+import { LayoutDashboard, Target, BookOpen, Calendar, FileText, LogOut, ShieldCheck, Database, Map } from 'lucide-react';
 
 export default function Sidebar() {
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
 
     return (
         <div className="sidebar">
-            <div className="sidebar-logo">
-                <Shield size={28} />
-                SecTrack Pro
+            <div className="sidebar-logo" style={{ fontSize: '1.1rem', fontWeight: 900 }}>
+                <ShieldCheck size={28} style={{ color: 'var(--primary)' }} />
+                <span>SECTRACK <span style={{ color: 'var(--primary)' }}>PRO</span></span>
             </div>
+
+            {user && (
+                <div className="profile-section">
+                    <div className="profile-avatar">
+                        {user.name ? user.name[0].toUpperCase() : user.email[0].toUpperCase()}
+                    </div>
+                    <div className="profile-info">
+                        <span className="profile-name">{user.name || user.email.split('@')[0]}</span>
+                    </div>
+                </div>
+            )}
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <NavLink to="/" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
@@ -24,6 +35,12 @@ export default function Sidebar() {
                 </NavLink>
                 <NavLink to="/logs" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <Calendar size={20} /> Daily Logs
+                </NavLink>
+                <NavLink to="/vault" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Database size={20} /> Intel Vault
+                </NavLink>
+                <NavLink to="/roadmaps" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Map size={20} /> Mission Roadmaps
                 </NavLink>
                 <NavLink to="/reports" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <FileText size={20} /> Reports
