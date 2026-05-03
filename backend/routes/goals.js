@@ -3,7 +3,6 @@ const { protect } = require('../middleware/authMiddleware');
 const Goal = require('../models/Goal');
 const Topic = require('../models/Topic');
 const Log = require('../models/Log');
-const { analyzeGoalDescription } = require('../utils/ai');
 
 const router = express.Router();
 
@@ -31,34 +30,6 @@ router.route('/')
         }
     });
 
-router.post('/:id/analyze', protect, async (req, res) => {
-    try {
-        const goal = await Goal.findOne({ _id: req.params.id, user: req.user._id });
-        if (!goal) return res.status(404).json({ message: 'Goal not found' });
-
-        const topicsData = await analyzeGoalDescription(goal.description);
-
-        // Create topics
-        const createdTopics = [];
-        for (let i = 0; i < topicsData.length; i++) {
-            const topic = await Topic.create({
-                user: req.user._id,
-                goal: goal._id,
-                title: topicsData[i].title,
-                description: topicsData[i].description,
-                estimatedHours: topicsData[i].estimatedHours,
-                priority: topicsData[i].priority,
-                tags: topicsData[i].tags,
-                orderIndex: i
-            });
-            createdTopics.push(topic);
-        }
-
-        res.json(createdTopics);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
 
 router.delete('/:id', protect, async (req, res) => {
     try {

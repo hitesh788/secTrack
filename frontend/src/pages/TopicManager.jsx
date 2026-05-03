@@ -4,6 +4,9 @@ import api from '../services/api';
 export default function TopicManager() {
     const [topics, setTopics] = useState([]);
     const [filter, setFilter] = useState('All');
+    const [newTitle, setNewTitle] = useState('');
+    const [newDescription, setNewDescription] = useState('');
+    const [loadingLog, setLoadingLog] = useState(false);
 
     useEffect(() => {
         fetchTopics();
@@ -27,6 +30,37 @@ export default function TopicManager() {
         }
     };
 
+    const handleAddTopicAndLog = async (e) => {
+        e.preventDefault();
+        if (!newTitle || !newDescription) return;
+        setLoadingLog(true);
+        try {
+            const topicRes = await api.post('/topics', {
+                title: newTitle,
+                description: newDescription,
+                status: 'Completed'
+            });
+            const newTopic = topicRes.data;
+            setTopics([newTopic, ...topics]);
+
+            await api.post('/logs', {
+                topicId: newTopic._id,
+                date: new Date().toISOString(),
+                completedTasks: newTitle,
+                notes: newDescription,
+                statusUpdate: 'Completed'
+            });
+
+            setNewTitle('');
+            setNewDescription('');
+            alert('Topic created and log saved!');
+        } catch (err) {
+            console.error(err);
+            alert('Failed to save Topic and Log');
+        }
+        setLoadingLog(false);
+    };
+
     const filteredTopics = topics.filter(t => filter === 'All' || t.status === filter);
 
     return (
@@ -41,6 +75,23 @@ export default function TopicManager() {
                 </select>
             </div>
 
+            <div className="glass-panel" style={{ marginBottom: '2rem' }}>
+                <h3>Add Today's Completed Topic</h3>
+                <form onSubmit={handleAddTopicAndLog} style={{ marginTop: '1rem' }}>
+                    <div className="form-group">
+                        <label>Title of Topic</label>
+                        <input className="form-control" value={newTitle} onChange={e => setNewTitle(e.target.value)} required placeholder="e.g. Mastered React Hooks" />
+                    </div>
+                    <div className="form-group">
+                        <label>What we learned today (Description)</label>
+                        <textarea className="form-control" value={newDescription} onChange={e => setNewDescription(e.target.value)} rows="3" required placeholder="Detailed notes about what was learned..."></textarea>
+                    </div>
+                    <button type="submit" className="btn btn-primary" disabled={loadingLog}>
+                        {loadingLog ? 'Saving...' : 'Save Log with Timestamp'}
+                    </button>
+                </form>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {filteredTopics.map(t => (
                     <div key={t._id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -52,7 +103,7 @@ export default function TopicManager() {
                             </h4>
                             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{t.description}</p>
                             <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                                {t.tags.map(tag => <span key={tag} style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>#{tag}</span>)}
+                                {t.tags && t.tags.map(tag => <span key={tag} style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>#{tag}</span>)}
                             </div>
                         </div>
                         <div>
@@ -64,7 +115,7 @@ export default function TopicManager() {
                         </div>
                     </div>
                 ))}
-                {topics.length === 0 && <p className="text-muted">No topics found. Create a goal and run AI analysis first!</p>}
+                {topics.length === 0 && <p className="text-muted">No topics found. Add a completed topic above to get started!</p>}
             </div>
         </div>
     );

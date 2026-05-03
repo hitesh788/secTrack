@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const topicSchema = new mongoose.Schema({
-    goal: { type: mongoose.Schema.Types.ObjectId, ref: 'Goal', required: true },
+    goal: { type: mongoose.Schema.Types.ObjectId, ref: 'Goal' },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String, required: true },
     description: { type: String },
