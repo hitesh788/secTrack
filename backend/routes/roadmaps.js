@@ -73,7 +73,8 @@ async function addWatermarkToPDF(filePath) {
 // Configure storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, '..', 'uploads');
+        const isVercel = process.env.VERCEL === '1';
+        const uploadPath = isVercel ? '/tmp/uploads' : path.join(__dirname, '..', 'uploads');
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
         }
@@ -104,7 +105,9 @@ router.route('/')
                 return res.status(400).json({ message: 'Please upload a file' });
             }
 
-            const filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
+            const isVercel = process.env.VERCEL === '1';
+            const uploadPath = isVercel ? '/tmp/uploads' : path.join(__dirname, '..', 'uploads');
+            const filePath = path.join(uploadPath, req.file.filename);
 
             // Add watermark if it is a PDF
             if (req.file.mimetype === 'application/pdf') {

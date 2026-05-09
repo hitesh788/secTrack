@@ -19,7 +19,8 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Static uploads folder
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const isVercel = process.env.VERCEL === '1';
+app.use('/uploads', express.static(isVercel ? '/tmp/uploads' : path.join(__dirname, 'uploads')));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sectrack', {
