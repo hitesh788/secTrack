@@ -65,8 +65,12 @@ export default function RoadmapCenter() {
             e.target.reset();
             toast.success('Operational blueprint archived successfully!');
         } catch (err) {
+<<<<<<< HEAD
             console.error('Upload error:', err.response?.data || err);
             toast.error(err.response?.data?.message || 'Failed to archive blueprint. Size might be too large.');
+=======
+            toast.error('Failed to archive blueprint. Size might be too large.');
+>>>>>>> 261fcc916b26cfcef58a99baba75f44abb416af8
         }
         setLoading(false);
     };
