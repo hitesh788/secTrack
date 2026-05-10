@@ -11,7 +11,8 @@ const topicSchema = new mongoose.Schema({
     tags: [{ type: String }],
     orderIndex: { type: Number, default: 0 },
     targetDate: { type: String, enum: ['Today', 'Tomorrow', 'Someday'], default: 'Someday' },
-    resources: { type: String }
+    resources: { type: String },
+    completedAt: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Topic', topicSchema);

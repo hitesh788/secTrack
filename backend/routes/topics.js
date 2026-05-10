@@ -19,7 +19,11 @@ router.route('/')
     })
     .post(protect, async (req, res) => {
         try {
-            const topic = await Topic.create({ ...req.body, user: req.user._id });
+            const payload = { ...req.body, user: req.user._id };
+            if (payload.status === 'Completed') {
+                payload.completedAt = new Date();
+            }
+            const topic = await Topic.create(payload);
             res.status(201).json(topic);
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -29,13 +33,20 @@ router.route('/')
 router.route('/:id')
     .put(protect, async (req, res) => {
         try {
-            const topic = await Topic.findOneAndUpdate(
+            const topic = await Topic.findOne({ _id: req.params.id, user: req.user._id });
+            if (!topic) return res.status(404).json({ message: 'Topic not found' });
+
+            const updateData = { ...req.body };
+            if (req.body.status === 'Completed' && !topic.completedAt) {
+                updateData.completedAt = new Date();
+            }
+
+            const updatedTopic = await Topic.findOneAndUpdate(
                 { _id: req.params.id, user: req.user._id },
-                req.body,
+                updateData,
                 { new: true }
             );
-            if (!topic) return res.status(404).json({ message: 'Topic not found' });
-            res.json(topic);
+            res.json(updatedTopic);
         } catch (error) {
             res.status(500).json({ message: error.message });
         }

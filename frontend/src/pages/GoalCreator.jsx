@@ -9,6 +9,7 @@ export default function GoalCreator() {
     const [topics, setTopics] = useState([]);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [startDate, setStartDate] = useState('');
     const [targetDate, setTargetDate] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -39,10 +40,11 @@ export default function GoalCreator() {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await api.post('/goals', { title, description, targetDate });
+            const res = await api.post('/goals', { title, description, startDate, targetDate });
             setGoals([...goals, res.data]);
             setTitle('');
             setDescription('');
+            setStartDate('');
             setTargetDate('');
             toast.success('Mission goal established successfully!');
         } catch (err) {
@@ -106,6 +108,10 @@ export default function GoalCreator() {
                             <textarea className="form-control" value={description} onChange={e => setDescription(e.target.value)} rows="5" required placeholder="I will master SIEM tools, learn log analysis, and get Blue Team Level 1 certified..." />
                         </div>
                         <div className="form-group">
+                            <label>Start Date</label>
+                            <input type="date" className="form-control" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+                        </div>
+                        <div className="form-group">
                             <label>Deadline / Target Date</label>
                             <input type="date" className="form-control" value={targetDate} onChange={e => setTargetDate(e.target.value)} required />
                         </div>
@@ -153,7 +159,11 @@ export default function GoalCreator() {
                                     <div className="goal-meta">
                                         <div className="goal-meta-item">
                                             <Calendar size={14} />
-                                            {g.targetDate ? new Date(g.targetDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'No Deadline'}
+                                            {g.startDate ? `Start: ${new Date(g.startDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` : 'No Start Date'}
+                                        </div>
+                                        <div className="goal-meta-item">
+                                            <Calendar size={14} />
+                                            {g.targetDate ? `Target: ${new Date(g.targetDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` : 'No Deadline'}
                                         </div>
                                         <div className="goal-meta-item">
                                             {progress === 100 ? <CheckCircle2 size={14} style={{ color: 'var(--success)' }} /> : <Info size={14} />}

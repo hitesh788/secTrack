@@ -17,11 +17,12 @@ router.route('/')
     })
     .post(protect, async (req, res) => {
         try {
-            const { title, description, targetDate } = req.body;
+            const { title, description, startDate, targetDate } = req.body;
             const goal = await Goal.create({
                 user: req.user._id,
                 title,
                 description,
+                startDate,
                 targetDate
             });
             res.status(201).json(goal);

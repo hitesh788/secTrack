@@ -59,9 +59,14 @@ export default function Reports() {
         </div>
     );
 
-    const todayTopics = topics.filter(t => t.targetDate === 'Today' || (!t.targetDate && t.status === 'In Progress'));
-    const tomorrowTopics = topics.filter(t => t.targetDate === 'Tomorrow' || (!t.targetDate && t.status === 'Not Started'));
+    const todayTopics = topics.filter(t => (t.targetDate === 'Today' || (!t.targetDate && t.status === 'In Progress')) && t.status !== 'Completed');
+    const tomorrowTopics = topics.filter(t => (t.targetDate === 'Tomorrow' || (!t.targetDate && t.status === 'Not Started')) && t.status !== 'Completed');
     const completedTopics = topics.filter(t => t.status === 'Completed');
+
+    const formatCompletionDate = (topic) => {
+        const dateValue = topic.completedAt || topic.updatedAt;
+        return dateValue ? new Date(dateValue).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+    };
 
     return (
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
@@ -98,9 +103,12 @@ export default function Reports() {
                         <div style={{ display: 'grid', gap: '1rem' }}>
                             {goals.map(g => (
                                 <div key={g._id} className="report-info-card">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', gap: '1rem', flexWrap: 'wrap' }}>
                                         <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.05rem' }}>{g.title}</h4>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>TARGET: {g.targetDate ? new Date(g.targetDate).toLocaleDateString() : 'N/A'}</span>
+                                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>START: {g.startDate ? new Date(g.startDate).toLocaleDateString() : 'N/A'}</span>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>TARGET: {g.targetDate ? new Date(g.targetDate).toLocaleDateString() : 'N/A'}</span>
+                                        </div>
                                     </div>
                                     <p style={{ fontSize: '0.875rem', color: '#475569', margin: 0, lineHeight: 1.5 }}>{g.description}</p>
                                 </div>
@@ -135,9 +143,14 @@ export default function Reports() {
                                 <CheckCircle2 size={14} style={{ color: 'var(--success)' }} /> Mastered Topics
                             </h5>
                             <div style={{ maxHeight: '200px', overflow: 'hidden' }}>
-                                {completedTopics.slice(0, 8).map(t => (
-                                    <div key={t._id} style={{ fontSize: '0.85rem', marginBottom: '4px' }}>✓ {t.title}</div>
-                                ))}
+                                {completedTopics.slice(0, 8).map(t => {
+                                    const completionDate = formatCompletionDate(t);
+                                    return (
+                                        <div key={t._id} style={{ fontSize: '0.85rem', marginBottom: '4px' }}>
+                                            ✓ {t.title}{completionDate ? ` — ${completionDate}` : ''}
+                                        </div>
+                                    );
+                                })}
                                 {completedTopics.length > 8 && <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>+ {completedTopics.length - 8} more topics</div>}
                                 {completedTopics.length === 0 && <p style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>None completed yet.</p>}
                             </div>
