@@ -195,7 +195,7 @@ export default function RoadmapCenter() {
                             </div>
 
                             <a
-                                href={`/_/backend${r.fileUrl}`}
+                                href={`${window.location.origin}/_/backend${r.fileUrl}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="btn btn-outline"
