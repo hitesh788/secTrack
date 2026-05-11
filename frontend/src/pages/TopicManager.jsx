@@ -31,6 +31,33 @@ export default function TopicManager() {
         }
     };
 
+    const extractUrl = (text) => {
+        if (!text) return null;
+        const urlMatch = text.match(/https?:\/\/[^"]+?(?=\s|$)/i);
+        if (urlMatch) return urlMatch[0];
+        const wwwMatch = text.match(/\bwww\.[^\s]+/i);
+        return wwwMatch ? `https://${wwwMatch[0]}` : null;
+    };
+
+    const syncTopicResourcesToVault = async (topicTitle, resourcesText) => {
+        if (!resourcesText || !resourcesText.trim()) return;
+
+        const url = extractUrl(resourcesText.trim());
+        const notes = url ? resourcesText.replace(url, '').trim() : resourcesText.trim();
+
+        try {
+            await api.post('/resources', {
+                title: `${topicTitle} (Planner Intel)`,
+                category: 'General',
+                link: url || '',
+                notes: notes || resourcesText.trim()
+            });
+            toast.info('Related intel synced to the Vault.');
+        } catch (err) {
+            console.error('Vault sync failed', err);
+        }
+    };
+
     const handleAddTopic = async (e, plannedFor) => {
         e.preventDefault();
         const title = plannedFor === 'Today' ? todayTitle : tomorrowTitle;
@@ -58,6 +85,11 @@ export default function TopicManager() {
                 setTomorrowDesc('');
                 setTomorrowResources('');
             }
+
+            if (resources && resources.trim()) {
+                await syncTopicResourcesToVault(title, resources);
+            }
+
             toast.success(`Operational topic scheduled for ${plannedFor}.`);
         } catch (err) {
             console.error(err);
@@ -95,6 +127,20 @@ export default function TopicManager() {
         }
     };
 
+    const deleteTopic = async (topicId) => {
+        const confirmed = window.confirm('Remove this planned topic for tomorrow?');
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/topics/${topicId}`);
+            setTopics(topics.filter(t => t._id !== topicId));
+            toast.success('Tomorrow plan deleted.');
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to delete tomorrow plan.');
+        }
+    };
+
     const todayTopics = topics.filter(t => (t.targetDate === 'Today' || (!t.targetDate && t.status === 'In Progress')) && t.status !== 'Completed');
     const tomorrowTopics = topics.filter(t => (t.targetDate === 'Tomorrow' || (!t.targetDate && t.status === 'Not Started')) && t.status !== 'Completed');
     const completedTopics = topics.filter(t => t.status === 'Completed');
@@ -124,9 +170,14 @@ export default function TopicManager() {
                     </button>
                 )}
                 {currentPlan === 'Tomorrow' && (
-                    <button className="btn btn-primary" style={{ flex: 1, backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => moveTopic(t._id, 'Today')}>
-                        <ArrowRight size={16} /> Start Today
-                    </button>
+                    <>
+                        <button className="btn btn-primary" style={{ flex: 1, backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => moveTopic(t._id, 'Today')}>
+                            <ArrowRight size={16} /> Start Today
+                        </button>
+                        <button className="btn btn-outline" style={{ flex: 1 }} title="Delete tomorrow plan" onClick={() => deleteTopic(t._id)}>
+                            Delete
+                        </button>
+                    </>
                 )}
                 {currentPlan === 'Today' && (
                     <button className="btn btn-outline" title="Push to Tomorrow" onClick={() => moveTopic(t._id, 'Tomorrow')}>

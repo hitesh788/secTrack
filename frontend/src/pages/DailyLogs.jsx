@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Calendar, AlertCircle, CheckCircle, Plus, X, Filter } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 export default function DailyLogs() {
     const [logs, setLogs] = useState([]);
@@ -9,10 +10,65 @@ export default function DailyLogs() {
     const [leaveReason, setLeaveReason] = useState('');
     const [loading, setLoading] = useState(false);
     const [timeFilter, setTimeFilter] = useState('All');
+    const [attendance, setAttendance] = useState([]);
+    const [attendanceLoading, setAttendanceLoading] = useState(false);
+    const [attendanceSubmitting, setAttendanceSubmitting] = useState(false);
 
     useEffect(() => {
         fetchLogs();
+        fetchAttendance();
     }, []);
+
+    const getLocalDate = () => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    };
+
+    const getLocalTime = () => {
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    };
+
+    const fetchAttendance = async () => {
+        setAttendanceLoading(true);
+        try {
+            const localDate = getLocalDate();
+            const localTime = getLocalTime();
+            const res = await api.get(`/attendance?localDate=${localDate}&localTime=${localTime}`);
+            setAttendance(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+        setAttendanceLoading(false);
+    };
+
+    const handleMarkAttendance = async () => {
+        setAttendanceSubmitting(true);
+        try {
+            const localDate = getLocalDate();
+            const res = await api.post('/attendance', {
+                date: localDate,
+                status: 'Present',
+                note: 'Daily attendance recorded.'
+            });
+
+            const attendanceEntry = res.data;
+            if (!attendance.some(entry => entry.dateString === attendanceEntry.dateString)) {
+                setAttendance([attendanceEntry, ...attendance]);
+            } else {
+                setAttendance(attendance.map(entry => entry.dateString === attendanceEntry.dateString ? attendanceEntry : entry));
+            }
+
+            toast.success('Attendance recorded for today.');
+        } catch (err) {
+            console.error(err);
+            const message = err.response?.data?.message;
+            toast.error(message || 'Failed to record attendance.');
+        }
+        setAttendanceSubmitting(false);
+    };
+
+    const todayAttendance = attendance.find(entry => entry.dateString === getLocalDate());
 
     const fetchLogs = async () => {
         try {
@@ -98,6 +154,74 @@ export default function DailyLogs() {
                     </form>
                 </div>
             )}
+
+            <div className="planner-form-container" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <Calendar size={24} className="text-gradient" />
+                        <div>
+                            <h3 style={{ margin: 0 }}>Daily Attendance</h3>
+                            <p className="planner-subtitle" style={{ margin: 0 }}>Mark your attendance for today before 11:30 PM. If missing, you will be auto marked absent.</p>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                        {attendanceLoading ? (
+                            <span className="badge badge-muted">Checking attendance...</span>
+                        ) : todayAttendance ? (
+                            <span className={`badge badge-${todayAttendance.status === 'Present' ? 'success' : 'danger'}`}>
+                                {todayAttendance.status}{todayAttendance.autoMarked ? ' (Auto)' : ''}
+                            </span>
+                        ) : (
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleMarkAttendance}
+                                disabled={attendanceSubmitting}
+                            >
+                                {attendanceSubmitting ? 'Marking...' : 'Mark Present'}
+                            </button>
+                        )}
+                        {todayAttendance && todayAttendance.note && (
+                            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{todayAttendance.note}</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="glass-panel" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
+                <h3 style={{ margin: '0 0 1rem 0' }}>Attendance History</h3>
+                {attendance.length === 0 ? (
+                    <p className="text-muted">No attendance records yet.</p>
+                ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="report-table" style={{ width: '100%', minWidth: '520px' }}>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Day</th>
+                                    <th>Status</th>
+                                    <th>Recorded At</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {attendance.map(entry => {
+                                    const date = new Date(entry.date);
+                                    const recordedAt = new Date(entry.createdAt || entry.date);
+                                    return (
+                                        <tr key={entry._id}>
+                                            <td>{date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                            <td>{date.toLocaleDateString(undefined, { weekday: 'long' })}</td>
+                                            <td>{entry.status}{entry.autoMarked ? ' (Auto)' : ''}</td>
+                                            <td>{recordedAt.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}</td>
+                                            <td>{entry.note || '—'}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
 
             <div style={{ marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>

@@ -11,6 +11,7 @@ const topicRoutes = require('./routes/topics');
 const logRoutes = require('./routes/logs');
 const resourceRoutes = require('./routes/resources');
 const roadmapRoutes = require('./routes/roadmaps');
+const attendanceRoutes = require('./routes/attendance');
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/topics', topicRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/resources', resourceRoutes);
+app.use('/api/attendance', attendanceRoutes);
 app.use('/api/roadmaps', roadmapRoutes);
 
 app.get('/', (req, res) => {

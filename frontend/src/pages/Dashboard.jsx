@@ -9,12 +9,14 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 export default function Dashboard() {
     const [topics, setTopics] = useState([]);
     const [logs, setLogs] = useState([]);
+    const [attendance, setAttendance] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        Promise.all([api.get('/topics'), api.get('/logs')]).then(([resTopics, resLogs]) => {
+        Promise.all([api.get('/topics'), api.get('/logs'), api.get('/attendance')]).then(([resTopics, resLogs, resAttendance]) => {
             setTopics(resTopics.data);
             setLogs(resLogs.data);
+            setAttendance(resAttendance.data);
             setLoading(false);
         }).catch(() => setLoading(false));
     }, []);
@@ -33,6 +35,44 @@ export default function Dashboard() {
 
     // Filter logs that are valid study sessions (not missed days)
     const validLogs = logs.filter(l => !l.isMissedDay);
+
+    // Calculate current attendance streak
+    const calculateStreak = () => {
+        if (attendance.length === 0) return 0;
+        
+        // Create a map of date strings to attendance status
+        const attendanceMap = {};
+        attendance.forEach(record => {
+            const date = new Date(record.date);
+            const dateStr = date.toDateString();
+            attendanceMap[dateStr] = record.status;
+        });
+        
+        let streak = 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        
+        // Count consecutive days backwards from today
+        // Streak increases only on "Present" days, resets on "Absent" or missing days
+        for (let i = 0; i < 365; i++) { // Check up to a year back
+            const checkDate = new Date(today);
+            checkDate.setDate(checkDate.getDate() - i);
+            const checkDateStr = checkDate.toDateString();
+            
+            const status = attendanceMap[checkDateStr];
+            
+            if (status === 'Present') {
+                streak++;
+            } else if (status === 'Absent' || status === undefined) {
+                // If absent or no record, streak ends
+                break;
+            }
+        }
+        
+        return streak;
+    };
+
+    const currentStreak = calculateStreak();
 
     // Heatmap Logic (Last 100 Days)
     const getHeatmapData = () => {
@@ -109,7 +149,15 @@ export default function Dashboard() {
             </div>
 
             {/* ACTIVITY HEATMAP */}
-            <div className="glass-panel" style={{ marginBottom: '2rem', padding: '2rem' }}>
+            <div className="glass-panel" style={{ marginBottom: '2rem', padding: '2rem', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(249, 115, 22, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(249, 115, 22, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Flame size={14} style={{ color: '#f97316' }} />
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f97316' }}>
+                            Streak: {currentStreak} {currentStreak === 1 ? 'Day' : 'Days'}
+                        </span>
+                    </div>
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
                     <Flame size={24} style={{ color: '#f97316' }} />
                     <h3 style={{ margin: 0 }}>Operational Activity Heatmap</h3>

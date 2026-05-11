@@ -12,6 +12,7 @@ export default function Reports() {
     const [goals, setGoals] = useState([]);
     const [topics, setTopics] = useState([]);
     const [logs, setLogs] = useState([]);
+    const [attendance, setAttendance] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -20,14 +21,16 @@ export default function Reports() {
 
     const fetchData = async () => {
         try {
-            const [gRes, tRes, lRes] = await Promise.all([
+            const [gRes, tRes, lRes, aRes] = await Promise.all([
                 api.get('/goals'),
                 api.get('/topics'),
-                api.get('/logs')
+                api.get('/logs'),
+                api.get('/attendance')
             ]);
             setGoals(gRes.data);
             setTopics(tRes.data);
             setLogs(lRes.data);
+            setAttendance(aRes.data);
         } catch (error) {
             console.error('Error fetching report data', error);
         }
@@ -48,7 +51,8 @@ export default function Reports() {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`SecTrack_Detailed_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        const userName = user?.name || user?.email?.split('@')[0] || 'User';
+        pdf.save(`${userName}_SecTrack_Report_${new Date().toISOString().split('T')[0]}.pdf`);
         toast.success('Operational report generated and downloaded.');
     };
 
@@ -159,7 +163,7 @@ export default function Reports() {
                 </div>
 
                 {/* 3. LOGS TABLE SECTION */}
-                <div>
+                <div style={{ marginBottom: '3rem' }}>
                     <div className="report-section-header">
                         <Calendar size={20} /> 3. Detailed Progress Ledger
                     </div>
@@ -192,6 +196,80 @@ export default function Reports() {
                                 ))}
                             </tbody>
                         </table>
+                    )}
+                </div>
+
+                {/* 4. ATTENDANCE SECTION */}
+                <div style={{ marginBottom: '3rem' }}>
+                    <div className="report-section-header">
+                        <User size={20} /> 4. Daily Attendance Record
+                    </div>
+                    {attendance.length === 0 ? <p style={{ padding: '1rem', color: '#94a3b8' }}>No attendance records found for this period.</p> : (
+                        <div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(45px, 1fr))', gap: '4px', marginTop: '1rem' }}>
+                                {attendance
+                                    .sort((a, b) => new Date(a.date) - new Date(b.date))
+                                    .slice(-30)
+                                    .map(entry => {
+                                    const date = new Date(entry.date);
+                                    const dayName = date.toLocaleDateString(undefined, { weekday: 'short' });
+                                    const dayNumber = date.getDate();
+                                    const monthName = date.toLocaleDateString(undefined, { month: 'short' }).toLowerCase();
+
+                                    return (
+                                        <div
+                                            key={entry._id}
+                                            style={{
+                                                border: '1px solid #e2e8f0',
+                                                borderRadius: '4px',
+                                                padding: '4px',
+                                                textAlign: 'center',
+                                                backgroundColor: entry.status === 'Present' ? '#f0fdf4' : '#fef2f2',
+                                                borderColor: entry.status === 'Present' ? '#bbf7d0' : '#fecaca'
+                                            }}
+                                        >
+                                            <div style={{
+                                                fontSize: '0.5rem',
+                                                fontWeight: 600,
+                                                color: entry.status === 'Present' ? '#166534' : '#b91c1c',
+                                                marginBottom: '1px'
+                                            }}>
+                                                {dayName}
+                                            </div>
+                                            <div style={{
+                                                fontSize: '0.9rem',
+                                                fontWeight: 700,
+                                                color: entry.status === 'Present' ? '#166534' : '#b91c1c',
+                                                marginBottom: '1px'
+                                            }}>
+                                                {dayNumber}
+                                            </div>
+                                            <div style={{
+                                                fontSize: '0.45rem',
+                                                color: entry.status === 'Present' ? '#166534' : '#b91c1c',
+                                                fontWeight: 500
+                                            }}>
+                                                {monthName}
+                                            </div>
+                                            {entry.autoMarked && (
+                                                <div style={{
+                                                    fontSize: '0.45rem',
+                                                    color: entry.status === 'Present' ? '#166534' : '#b91c1c',
+                                                    marginTop: '1px'
+                                                }}>
+                                                    Auto
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {attendance.length > 30 && (
+                                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '1rem', textAlign: 'center' }}>
+                                    Showing last 30 attendance records. Total: {attendance.length} days
+                                </p>
+                            )}
+                        </div>
                     )}
                 </div>
 
