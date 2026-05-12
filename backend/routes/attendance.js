@@ -89,4 +89,25 @@ router.route('/')
         }
     });
 
+router.route('/:id')
+    .patch(protect, async (req, res) => {
+        try {
+            const { leaveReason } = req.body;
+            if (leaveReason === undefined) {
+                return res.status(400).json({ message: 'leaveReason is required.' });
+            }
+
+            const attendance = await Attendance.findOne({ _id: req.params.id, user: req.user._id });
+            if (!attendance) {
+                return res.status(404).json({ message: 'Attendance record not found.' });
+            }
+
+            attendance.leaveReason = leaveReason;
+            await attendance.save();
+            res.json(attendance);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    });
+
 module.exports = router;

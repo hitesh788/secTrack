@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Calendar, AlertCircle, CheckCircle, Plus, X, Filter } from 'lucide-react';
+import { Calendar, AlertCircle, CheckCircle, Plus, X, Filter, Edit2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function DailyLogs() {
     const [logs, setLogs] = useState([]);
-    const [showLeaveForm, setShowLeaveForm] = useState(false);
-    const [leaveDate, setLeaveDate] = useState(new Date().toISOString().split('T')[0]);
-    const [leaveReason, setLeaveReason] = useState('');
     const [loading, setLoading] = useState(false);
     const [timeFilter, setTimeFilter] = useState('All');
     const [attendance, setAttendance] = useState([]);
     const [attendanceLoading, setAttendanceLoading] = useState(false);
     const [attendanceSubmitting, setAttendanceSubmitting] = useState(false);
+    const [editingReasonId, setEditingReasonId] = useState(null);
+    const [editingReasonValue, setEditingReasonValue] = useState('');
+    const [savingReasonId, setSavingReasonId] = useState(null);
 
     useEffect(() => {
         fetchLogs();
@@ -79,24 +79,27 @@ export default function DailyLogs() {
         }
     };
 
-    const handleSaveLeave = async (e) => {
-        e.preventDefault();
-        setLoading(true);
+    const handleSaveLeaveReason = async (attendanceId) => {
+        if (!editingReasonValue.trim()) {
+            toast.warning('Please enter a reason');
+            return;
+        }
+        
+        setSavingReasonId(attendanceId);
         try {
-            const res = await api.post('/logs', {
-                date: leaveDate,
-                isMissedDay: true,
-                reasonMissed: leaveReason,
-                completedTasks: 'Leave / Did not study'
+            const res = await api.patch(`/attendance/${attendanceId}`, {
+                leaveReason: editingReasonValue
             });
-            setLogs([res.data, ...logs]);
-            setLeaveReason('');
-            setShowLeaveForm(false);
+            
+            setAttendance(attendance.map(entry => entry._id === attendanceId ? res.data : entry));
+            setEditingReasonId(null);
+            setEditingReasonValue('');
+            toast.success('Leave reason saved');
         } catch (err) {
             console.error(err);
-            alert('Failed to log leave status');
+            toast.error('Failed to save leave reason');
         }
-        setLoading(false);
+        setSavingReasonId(null);
     };
 
     const getFilteredLogs = () => {
@@ -118,42 +121,7 @@ export default function DailyLogs() {
 
     return (
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <h1 className="page-title" style={{ margin: 0, border: 'none' }}>Daily Progress Logs</h1>
-                <button
-                    className={`btn ${showLeaveForm ? 'btn-outline' : 'btn-primary'}`}
-                    style={{ backgroundColor: showLeaveForm ? 'transparent' : 'var(--danger)', borderColor: 'var(--danger)', color: showLeaveForm ? 'var(--danger)' : 'white' }}
-                    onClick={() => setShowLeaveForm(!showLeaveForm)}
-                >
-                    {showLeaveForm ? <><X size={18} /> Close</> : <><Plus size={18} /> Add Leave Status</>}
-                </button>
-            </div>
-
-            {showLeaveForm && (
-                <div className="planner-form-container" style={{ marginBottom: '2.5rem', borderStyle: 'solid', borderColor: 'var(--danger)', background: 'rgba(252, 165, 165, 0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: 'var(--danger)' }}>
-                        <AlertCircle size={22} />
-                        <h3 style={{ margin: 0 }}>Log a Day of Leave</h3>
-                    </div>
-                    <form onSubmit={handleSaveLeave}>
-                        <div className="grid-2" style={{ gap: '1.5rem' }}>
-                            <div className="form-group">
-                                <label>Date of Leave</label>
-                                <input type="date" className="form-control" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} required />
-                            </div>
-                            <div className="form-group">
-                                <label>Reason for Leave</label>
-                                <input className="form-control" value={leaveReason} onChange={e => setLeaveReason(e.target.value)} required placeholder="e.g. Sick, traveling, exam preparation..." />
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                            <button type="submit" className="btn btn-primary" style={{ background: 'var(--danger)', padding: '0.75rem 2rem' }} disabled={loading}>
-                                {loading ? 'Saving...' : 'Save Leave Log'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
+            <h1 className="page-title" style={{ margin: 0, border: 'none', marginBottom: '2rem' }}>Daily Progress Logs</h1>
 
             <div className="planner-form-container" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
@@ -200,20 +168,107 @@ export default function DailyLogs() {
                                     <th>Day</th>
                                     <th>Status</th>
                                     <th>Recorded At</th>
-                                    <th>Note</th>
+                                    <th>Notes</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {attendance.map(entry => {
                                     const date = new Date(entry.date);
                                     const recordedAt = new Date(entry.createdAt || entry.date);
+                                    const isEditing = editingReasonId === entry._id;
+                                    
                                     return (
                                         <tr key={entry._id}>
                                             <td>{date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                                             <td>{date.toLocaleDateString(undefined, { weekday: 'long' })}</td>
-                                            <td>{entry.status}{entry.autoMarked ? ' (Auto)' : ''}</td>
+                                            <td>
+                                                <span style={{
+                                                    color: entry.status === 'Present' ? 'var(--success)' : 'var(--danger)',
+                                                    fontWeight: 600
+                                                }}>
+                                                    {entry.status}{entry.autoMarked ? ' (Auto)' : ''}
+                                                </span>
+                                            </td>
                                             <td>{recordedAt.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}</td>
-                                            <td>{entry.note || '—'}</td>
+                                            <td>
+                                                {entry.status === 'Present' ? (
+                                                    <span style={{ color: 'var(--success)', fontWeight: 600 }}>Daily attendance recorded</span>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Leave reason:</span>
+                                                        {isEditing ? (
+                                                            <div style={{ display: 'flex', gap: '6px', flex: 1, minWidth: '200px' }}>
+                                                                <input 
+                                                                    type="text" 
+                                                                    className="form-control"
+                                                                    value={editingReasonValue}
+                                                                    onChange={e => setEditingReasonValue(e.target.value)}
+                                                                    placeholder="Enter leave reason..."
+                                                                    style={{ padding: '6px 8px', fontSize: '0.9rem' }}
+                                                                />
+                                                                <button
+                                                                    onClick={() => handleSaveLeaveReason(entry._id)}
+                                                                    disabled={savingReasonId === entry._id}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        background: 'var(--success)',
+                                                                        color: 'white',
+                                                                        border: 'none',
+                                                                        borderRadius: '4px',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '0.75rem',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setEditingReasonId(null)}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        background: '#64748b',
+                                                                        color: 'white',
+                                                                        border: 'none',
+                                                                        borderRadius: '4px',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '0.75rem',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <span style={{ color: entry.leaveReason ? '#cbd5e1' : '#64748b' }}>
+                                                                    {entry.leaveReason || 'Not provided'}
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditingReasonId(entry._id);
+                                                                        setEditingReasonValue(entry.leaveReason || '');
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        background: 'var(--primary)',
+                                                                        color: 'white',
+                                                                        border: 'none',
+                                                                        borderRadius: '4px',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '0.75rem',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '4px'
+                                                                    }}
+                                                                >
+                                                                    <Edit2 size={14} />
+                                                                    Add Reason
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </td>
                                         </tr>
                                     );
                                 })}
